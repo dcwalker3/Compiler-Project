@@ -1,0 +1,9 @@
+print("Hello World");
+age = input("What is your age: ");
+print("User Entered: ${age}");
+ageType = type(age);
+print("Type of age is: ${ageType}");
+
+if(true){
+    print("True");
+}
