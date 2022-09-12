@@ -9,6 +9,7 @@
 #include <vector>
 #include <math.h>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -31,8 +32,12 @@ using namespace std;
             vector <string> fileLines;
             ifstream file(filePath);
             string line;
+
+            // Make sure the line is not empty
             while (getline(file, line)) {
-                fileLines.push_back(line);
+                if(line != "") {
+                    fileLines.push_back(line);
+                }
             }
             return fileLines;
         }
@@ -156,6 +161,8 @@ using namespace std;
                 string variableName = codeLine.substr(codeLine.find("sqrt(") + 5, codeLine.find(")") - codeLine.find("sqrt(") - 5);
                 return to_string(sqrt(stof(variables[variableName])));
             }
+
+            return "ERROR: Unknown Function";
         }
 
         /// Print Statement Function
@@ -235,6 +242,39 @@ using namespace std;
             }
         }
 
+        /// Remove Leading 0's
+        /// \param number -> The number to remove leading 0's from
+        /// \return The number without leading 0's in string form
+        string Compiler::removeLeadingZeros(string number){
+            // Remove leading 0's
+            while(number[0] == '0'){
+                number = number.substr(1);
+            }
+            return number;
+        }
+
+        /// Evaluate Expression
+        /// \param expression -> The expression to be evaluated
+        /// \param operatorType -> The operator type to be used
+        /// \return The result of the expression in true or false form
+        bool Compiler::eval(string expression, string operatorType){
+            if(operatorType == "=="){
+                return expression.substr(0, expression.find("==")) == expression.substr(expression.find("==") + 2);
+            }
+            else if(operatorType == "!"){
+                return expression.substr(0, expression.find("!=")) != expression.substr(expression.find("!=") + 2);
+            }
+            else if(operatorType == ">"){
+                return stof(expression.substr(0, expression.find(">"))) > stof(expression.substr(expression.find(">") + 1));
+            }
+            else if(operatorType == "<"){
+                return stof(expression.substr(0, expression.find("<"))) < stof(expression.substr(expression.find("<") + 1));
+            }
+            else{
+                return false;
+            }
+        }
+
         /// Evaluate a Conditional Statement
         /// \param condition -> The condition to be evaluated
         /// \return True\False
@@ -244,6 +284,77 @@ using namespace std;
                 return true;
             } else if(condition == "false"){
                 return false;
+            } else{
+                // Check if the condition contains a variable
+                // Variables will be in the format of 'variableName'
+                // Look for a special character to act as a delimiter
+                // If no special character is found, the condition is a variable
+                if(condition.find_first_of("+-*/%<>=!&|") != string::npos){
+                    // Remove whitespace
+                    condition.erase(remove(condition.begin(), condition.end(), ' '), condition.end());
+
+                    // Check either side of the operator
+                    string leftSide = condition.substr(0, condition.find_first_of("+-*/%<>=!&|"));
+                    string rightSide = condition.substr(condition.find_first_of("+-*/%<>=!&|") + 1);
+
+                    if(variableExists(leftSide)){
+                        leftSide = variables[leftSide];
+                    }
+                    if(variableExists(rightSide)){
+                        rightSide = variables[rightSide];
+                    }
+
+                    // remove leading zeros from both sides
+                    leftSide = removeLeadingZeros(leftSide);
+                    rightSide = removeLeadingZeros(rightSide);
+
+                    string conditionOperator = condition.substr(condition.find_first_of("+-*/%<>=!&|"), 1);
+                    if(conditionOperator == "="){
+                        conditionOperator = "==";
+                    }
+
+                    condition = leftSide + conditionOperator + rightSide;
+                    return eval(condition, conditionOperator);
+
+                } else{
+                    // Check if the condition contains a function
+                    if(condition.find("(") != string::npos){
+                        condition = runFunction(condition);
+                    }
+
+                    // Replace variables in the condition
+                    condition = replaceVariable(condition);
+
+                    // Check if the condition contains a string
+                    if(condition[0] == '"' && condition[condition.length() - 1] == '"'){
+                        // Remove the quotes
+                        condition = condition.substr(1, condition.length() - 2);
+                        // Check if the condition is empty
+                        if(condition.empty()){
+                            return false;
+                        } else{
+                            return true;
+                        }
+                    } else{
+                        // Check if the condition is a number
+                        if(condition.find_first_not_of("0123456789.") == string::npos){
+                            // Check if the number is 0
+                            if(stof(condition) == 0){
+                                return false;
+                            } else{
+                                return true;
+                            }
+                        } else{
+                            // Check if the condition is a boolean
+                            if(condition == "true" || condition == "false"){
+                                return condition == "true";
+                            } else{
+                                print("ERROR: Condition " + condition + " is not a boolean");
+                                return false;
+                            }
+                        }
+                    }
+                }
             }
 
 
@@ -311,8 +422,23 @@ using namespace std;
                 endLine++;
             }
 
+            for(int i = lineNumber; i < endLine; i++){
+                conditionalLines.push_back(fileLines[i]);
+            }
+
             // Get the condition
             string condition = conditionalLine.substr(conditionalLine.find("(") + 1, conditionalLine.find_last_of(")") - conditionalLine.find("(") - 1);
+            if(!checkCondition(condition)){
+                // Remove the lines from the fileLines vector
+                fileLines.erase(fileLines.begin() + lineNumber, fileLines.begin() + endLine + 1);
+            } else {
+                // Remove the else statement
+                int startOfElse = endLine;
+                while (fileLines[startOfElse].find("}") == string::npos) {
+                    startOfElse++;
+                }
+                fileLines.erase(fileLines.begin() + startOfElse, fileLines.begin() + startOfElse + 1);
+            }
         }
 
         /// Run the code

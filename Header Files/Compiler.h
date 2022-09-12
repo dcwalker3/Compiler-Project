@@ -34,10 +34,10 @@ class Compiler{
         string typeOf(string line);
         void executeLine(string line);
         string runFunction(string codeLine);
-
-    void conditionalStatement(int lineNum);
-
-    bool checkCondition(string condition);
+        void conditionalStatement(int lineNum);
+        bool checkCondition(string condition);
+        string removeLeadingZeros(string number);
+        bool eval(string expression, string operatorType);
 };
 
 

@@ -1,9 +1,30 @@
+// Print Statement
 print("Hello World");
+
+// Input that assigns a value to a variable
 age = input("What is your age: ");
+
+// Print statement using variable
 print("User Entered: ${age}");
+
+// Get type of variable
 ageType = type(age);
+
+// Another print statement using variable
 print("Type of age is: ${ageType}");
 
-if(true){
-    print("True");
+// If age is less than 17, print "Not an adult"
+if(age < 18){
+    print("Not An Adult");
 }
+
+if(age=18){
+    print("You are an adult");
+}
+
+// If age is not 0, print "Age is not 0"
+if(age!0){
+    print("You are not 0");
+}
+
+
